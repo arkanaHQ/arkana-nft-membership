@@ -150,6 +150,12 @@ impl Contract {
         true
     }
 
+    pub fn add_signer_account(&mut self, account_id: AccountId) -> bool {
+      self.assert_owner_or_admin();
+      self.signer_accounts.insert(&account_id);
+      true
+    }
+
     /// Update public sale price.
     /// Careful this is in yoctoNear: 1N = 1000000000000000000000000 yN
     /// @allow ["::admins", "::owner"]
@@ -193,7 +199,8 @@ impl Contract {
         self.assert_owner_or_admin();
         let deposit = env::attached_deposit();
         let account = &env::predecessor_account_id();
-        self.assert_can_mint(account, 1);
+        let signer = &env::signer_account_id();
+        self.assert_can_mint(account, signer, 1);
         let total_cost = self.cost_of_linkdrop(account).0;
         self.pending_tokens += 1;
         let mint_for_free = self.is_owner(account);

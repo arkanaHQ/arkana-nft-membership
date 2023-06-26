@@ -6,9 +6,9 @@ import { binPath } from "./utils";
 import {icon} from "./icon";
 
 const metadata: tenk.InitialMetadata = {
-  uri: "https://bafybeihmtke7glg2aec5oav5btzlv6ec4fxkbbh4xjre4x5ipaqdxroahe.ipfs.dweb.link",
-  name: "TENK NFT",
-  symbol: "TENK",
+  uri: "https://bafybeidwgucnscvwobyyb4nubep5wzb6hcgltui6q2s7e2rqbrlnhb3opi.ipfs.nftstorage.link",
+  name: "Arkana Uno",
+  symbol: "ARKA",
   icon,
 };
 

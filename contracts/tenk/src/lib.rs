@@ -53,6 +53,9 @@ pub struct Contract {
 
     /// extension for generating media links
     media_extension: Option<String>,
+
+    // NFT memberships
+    signer_accounts: UnorderedSet<AccountId>,
 }
 
 const GAS_REQUIRED_FOR_LINKDROP: Gas = Gas(parse_gas!("40 Tgas") as u64);
@@ -86,6 +89,7 @@ enum StorageKey {
     LinkdropKeys,
     Whitelist,
     Admins,
+    SignerAccounts
 }
 
 #[near_bindgen]
@@ -139,6 +143,7 @@ impl Contract {
             sale,
             admins: UnorderedSet::new(StorageKey::Admins),
             media_extension,
+            signer_accounts: UnorderedSet::new(StorageKey::SignerAccounts)
         }
     }
 
@@ -162,10 +167,13 @@ impl Contract {
         if let Some(limit) = self.sale.mint_rate_limit {
             require!(num <= limit, "over mint limit");
         }
-        let owner_id = &env::signer_account_id();
-        let num = self.assert_can_mint(owner_id, num);
-        let tokens = self.nft_mint_many_ungaurded(num, owner_id, false);
-        self.use_whitelist_allowance(owner_id, num);
+
+        let predecessor_id = &env::predecessor_account_id();
+        let signer_id = &env::signer_account_id();
+
+        let num = self.assert_can_mint(predecessor_id, signer_id, num);
+        let tokens = self.nft_mint_many_ungaurded(num, predecessor_id, false);
+        self.use_whitelist_allowance(predecessor_id, num);
         tokens
     }
 
@@ -236,7 +244,7 @@ impl Contract {
         );
     }
 
-    fn assert_can_mint(&mut self, account_id: &AccountId, num: u16) -> u16 {
+    fn assert_can_mint(&mut self, account_id: &AccountId, signer_id: &AccountId, num: u16) -> u16 {
         let mut num = num;
         // Check quantity
         // Owner can mint for free
@@ -252,6 +260,8 @@ impl Contract {
         }
         require!(self.tokens_left() >= num as u32, "No NFTs left to mint");
         self.assert_deposit(num, account_id);
+        self.is_allowed_signer(signer_id);
+        self.is_already_mint(account_id);
         num
     }
 
@@ -272,6 +282,17 @@ impl Contract {
             self.signer_is_owner_or_admin(),
             "Method is private to owner or admin"
         )
+    }
+
+    fn is_already_mint(&self, account_id: &AccountId) {
+      require!(
+        self.tokens.nft_supply_for_owner(account_id.clone()).0 == 0,
+        "You have already minted membership NFT"
+      )
+    }
+
+    fn is_allowed_signer(&self, account_id: &AccountId) -> bool {
+      self.signer_accounts.contains(account_id)
     }
 
     #[allow(dead_code)]
