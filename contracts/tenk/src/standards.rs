@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::*;
 pub(crate) use near_contract_standards::non_fungible_token::{
     approval::NonFungibleTokenApproval,
@@ -89,7 +91,38 @@ impl NonFungibleTokenCore for Contract {
 
     /// Returns the token with the given `token_id` or `null` if no such token.
     fn nft_token(&self, token_id: TokenId) -> Option<Token> {
-        self.tokens.nft_token(token_id)
+        let owner_id = self.tokens.owner_by_id.get(&token_id)?;
+        let approved_account_ids = self
+            .tokens
+            .approvals_by_id
+            .as_ref()
+            .and_then(|by_id| by_id.get(&token_id).or_else(|| Some(HashMap::new())));
+
+        let mut token_metadata = self
+            .tokens
+            .token_metadata_by_id
+            .as_ref()
+            .unwrap()
+            .get(&token_id)
+            .unwrap();
+
+        token_metadata.title = Some(format!(
+            "{} #{}",
+            self.metadata.get().unwrap().name,
+            token_id.to_string()
+        ));
+
+        let metadata = self.metadata.get().unwrap();
+
+        token_metadata.reference = metadata.reference;
+        token_metadata.media = Some("".to_string());
+
+        Some(Token {
+            token_id,
+            owner_id,
+            metadata: Some(token_metadata),
+            approved_account_ids,
+        })
     }
 }
 

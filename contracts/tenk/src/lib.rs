@@ -89,7 +89,7 @@ enum StorageKey {
     LinkdropKeys,
     Whitelist,
     Admins,
-    SignerAccounts
+    SignerAccounts,
 }
 
 #[near_bindgen]
@@ -143,7 +143,7 @@ impl Contract {
             sale,
             admins: UnorderedSet::new(StorageKey::Admins),
             media_extension,
-            signer_accounts: UnorderedSet::new(StorageKey::SignerAccounts)
+            signer_accounts: UnorderedSet::new(StorageKey::SignerAccounts),
         }
     }
 
@@ -285,14 +285,14 @@ impl Contract {
     }
 
     fn is_already_mint(&self, account_id: &AccountId) {
-      require!(
-        self.tokens.nft_supply_for_owner(account_id.clone()).0 == 0,
-        "You have already minted membership NFT"
-      )
+        require!(
+            self.tokens.nft_supply_for_owner(account_id.clone()).0 == 0,
+            "You have already minted membership NFT"
+        )
     }
 
     fn is_allowed_signer(&self, account_id: &AccountId) -> bool {
-      self.signer_accounts.contains(account_id)
+        self.signer_accounts.contains(account_id)
     }
 
     #[allow(dead_code)]
@@ -329,29 +329,18 @@ impl Contract {
         token_owner_id: AccountId,
         refund_id: Option<AccountId>,
     ) -> Token {
-        let token_metadata = Some(self.create_metadata(&token_id));
+        let token_metadata = Some(self.create_metadata());
         self.tokens
             .internal_mint_with_refund(token_id, token_owner_id, token_metadata, refund_id)
     }
 
-    fn create_metadata(&mut self, token_id: &str) -> TokenMetadata {
-        let media = Some(format!(
-            "{}.{}",
-            token_id,
-            self.media_extension.as_ref().unwrap_or(&"png".to_string())
-        ));
-        let reference = Some(format!("{}.json", token_id));
-        let title = Some(format!(
-            "{} #{}",
-            self.metadata.get().unwrap().name,
-            token_id.to_string()
-        ));
+    fn create_metadata(&mut self) -> TokenMetadata {
         TokenMetadata {
-            title, // ex. "Arch Nemesis: Mail Carrier" or "Parcel #5055"
-            media, // URL to associated media, preferably to decentralized, content-addressed storage
-            issued_at: Some(current_time_ms().to_string()), // ISO 8601 datetime when token was issued or minted
-            reference,            // URL to an off-chain JSON file with more info.
-            description: None,    // free-form description
+            title: None,          // ex. "Arch Nemesis: Mail Carrier" or "Parcel #5055"
+            media: None, // URL to associated media, preferably to decentralized, content-addressed storage
+            issued_at: None, // ISO 8601 datetime when token was issued or minted
+            reference: None, // URL to an off-chain JSON file with more info.
+            description: None, // free-form description
             media_hash: None, // Base64-encoded sha256 hash of content referenced by the `media` field. Required if `media` is included.
             copies: None, // number of copies of this set of metadata in existence when token was minted.
             expires_at: None, // ISO 8601 datetime when token expires
