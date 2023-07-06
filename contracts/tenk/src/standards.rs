@@ -115,7 +115,11 @@ impl NonFungibleTokenCore for Contract {
         let metadata = self.metadata.get().unwrap();
 
         token_metadata.reference = metadata.reference;
-        token_metadata.media = Some("".to_string());
+        token_metadata.media = Some(format!(
+            "{}.{}",
+            "1",
+            self.media_extension.as_ref().unwrap_or(&"png".to_string())
+        ));
 
         Some(Token {
             token_id,

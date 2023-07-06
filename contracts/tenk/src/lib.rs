@@ -22,14 +22,12 @@ type TimestampMs = u64;
 pub mod linkdrop;
 mod owner;
 pub mod payout;
-mod raffle;
 mod standards;
 mod types;
 mod util;
 mod views;
 
 use payout::*;
-use raffle::Raffle;
 use standards::*;
 use types::*;
 use util::{current_time_ms, is_promise_success, log_mint, refund};
@@ -40,7 +38,6 @@ pub struct Contract {
     pub(crate) tokens: NonFungibleToken,
     metadata: LazyOption<NFTContractMetadata>,
     /// Vector of available NFTs
-    raffle: Raffle,
     pending_tokens: u32,
     /// Linkdrop fields will be removed once proxy contract is deployed
     pub accounts: LookupMap<PublicKey, bool>,
@@ -56,6 +53,7 @@ pub struct Contract {
 
     // NFT memberships
     signer_accounts: UnorderedSet<AccountId>,
+    last_id: u64,
 }
 
 const GAS_REQUIRED_FOR_LINKDROP: Gas = Gas(parse_gas!("40 Tgas") as u64);
@@ -85,7 +83,6 @@ enum StorageKey {
     TokenMetadata,
     Enumeration,
     Approval,
-    Raffle,
     LinkdropKeys,
     Whitelist,
     Admins,
@@ -136,7 +133,6 @@ impl Contract {
                 Some(StorageKey::Approval),
             ),
             metadata: LazyOption::new(StorageKey::Metadata, Some(&metadata)),
-            raffle: Raffle::new(StorageKey::Raffle, size as u64),
             pending_tokens: 0,
             accounts: LookupMap::new(StorageKey::LinkdropKeys),
             whitelist: LookupMap::new(StorageKey::Whitelist),
@@ -144,6 +140,7 @@ impl Contract {
             admins: UnorderedSet::new(StorageKey::Admins),
             media_extension,
             signer_accounts: UnorderedSet::new(StorageKey::SignerAccounts),
+            last_id: 0,
         }
     }
 
@@ -258,7 +255,6 @@ impl Contract {
             num = u16::min(allowance, num);
             require!(num > 0, "Account has no more allowance left");
         }
-        require!(self.tokens_left() >= num as u32, "No NFTs left to mint");
         self.assert_deposit(num, account_id);
         self.is_allowed_signer(signer_id);
         self.is_already_mint(account_id);
@@ -319,7 +315,8 @@ impl Contract {
     }
 
     fn draw_and_mint(&mut self, token_owner_id: AccountId, refund: Option<AccountId>) -> Token {
-        let id = self.raffle.draw();
+        let id = self.last_id + 1;
+        self.last_id += 1;
         self.internal_mint(id.to_string(), token_owner_id, refund)
     }
 
@@ -387,9 +384,6 @@ impl Contract {
     }
 
     fn get_status(&self) -> Status {
-        if self.tokens_left() == 0 {
-            return Status::SoldOut;
-        }
         let current_time = current_time_ms();
         match (self.sale.presale_start, self.sale.public_sale_start) {
             (_, Some(public)) if public < current_time => Status::Open,
