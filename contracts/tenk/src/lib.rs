@@ -327,8 +327,13 @@ impl Contract {
         refund_id: Option<AccountId>,
     ) -> Token {
         let token_metadata = Some(self.create_metadata());
-        self.tokens
-            .internal_mint_with_refund(token_id, token_owner_id, token_metadata, refund_id)
+        self.tokens.owner_by_id.insert(&token_id, &token_owner_id);
+        Token {
+            token_id,
+            owner_id: token_owner_id,
+            metadata: token_metadata,
+            approved_account_ids: None,
+        }
     }
 
     fn create_metadata(&mut self) -> TokenMetadata {

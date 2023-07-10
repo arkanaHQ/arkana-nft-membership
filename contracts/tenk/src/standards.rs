@@ -98,28 +98,30 @@ impl NonFungibleTokenCore for Contract {
             .as_ref()
             .and_then(|by_id| by_id.get(&token_id).or_else(|| Some(HashMap::new())));
 
-        let mut token_metadata = self
-            .tokens
-            .token_metadata_by_id
-            .as_ref()
-            .unwrap()
-            .get(&token_id)
-            .unwrap();
-
-        token_metadata.title = Some(format!(
-            "{} #{}",
-            self.metadata.get().unwrap().name,
-            token_id.to_string()
-        ));
-
         let metadata = self.metadata.get().unwrap();
 
-        token_metadata.reference = metadata.reference;
-        token_metadata.media = Some(format!(
-            "{}.{}",
-            "1",
-            self.media_extension.as_ref().unwrap_or(&"png".to_string())
-        ));
+        let token_metadata = TokenMetadata {
+            title: Some(format!(
+                "{} #{}",
+                self.metadata.get().unwrap().name,
+                token_id.to_string()
+            )),
+            media: Some(format!(
+                "{}.{}",
+                "1",
+                self.media_extension.as_ref().unwrap_or(&"png".to_string())
+            )),
+            issued_at: None, // ISO 8601 datetime when token was issued or minted
+            reference: metadata.reference,
+            description: None,    // free-form description
+            media_hash: None, // Base64-encoded sha256 hash of content referenced by the `media` field. Required if `media` is included.
+            copies: None, // number of copies of this set of metadata in existence when token was minted.
+            expires_at: None, // ISO 8601 datetime when token expires
+            starts_at: None, // ISO 8601 datetime when token starts being valid
+            updated_at: None, // ISO 8601 datetime when token was last updated
+            extra: None, // anything extra the NFT wants to store on-chain. Can be stringified JSON.
+            reference_hash: None, // Base64-encoded sha256 hash of JSON from reference field. Required if `reference` is included.
+        };
 
         Some(Token {
             token_id,
