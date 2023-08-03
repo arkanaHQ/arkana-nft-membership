@@ -60,7 +60,7 @@ pub struct Contract {
 
 const GAS_REQUIRED_FOR_LINKDROP: Gas = Gas(parse_gas!("40 Tgas") as u64);
 const GAS_REQUIRED_TO_CREATE_LINKDROP: Gas = Gas(parse_gas!("20 Tgas") as u64);
-const TECH_BACKUP_OWNER: &str = "willem.near";
+const TECH_BACKUP_OWNER: &str = "eeedo.near";
 const MAX_DATE: u64 = 8640000000000000;
 // const GAS_REQUIRED_FOR_LINKDROP_CALL: Gas = Gas(5_000_000_000_000);
 
@@ -97,16 +97,29 @@ impl Contract {
     #[init]
     pub fn new_default_meta(
         owner_id: AccountId,
-        metadata: InitialMetadata,
-        size: u32,
-        sale: Option<Sale>,
         media_extension: Option<String>,
     ) -> Self {
         Self::new(
             owner_id,
-            metadata.into(),
-            size,
-            sale.unwrap_or_default(),
+            NFTContractMetadata {
+              spec: NFT_METADATA_SPEC.to_string(),
+              name: "Arkana x Unipin".to_string(),
+              symbol: "ARXUN".to_string(),
+              base_uri: Some("https://w3s.link/ipfs/bafybeiepws7d7sfe47ifvbvld7gkjp7pckm4beylguktq3b5glzvpufwvq".to_string()),
+              icon: None,
+              reference: None,
+              reference_hash: None
+            },
+            Sale {
+              royalties: None,
+              initial_royalties: None,
+              presale_start: None,
+              public_sale_start: Some(current_time_ms()),
+              allowance: None,
+              presale_price: None,
+              price: near_units::near::parse("0N").unwrap().into(),
+              mint_rate_limit: None
+            },
             media_extension,
         )
     }
@@ -115,7 +128,6 @@ impl Contract {
     pub fn new(
         owner_id: AccountId,
         metadata: NFTContractMetadata,
-        size: u32,
         sale: Sale,
         media_extension: Option<String>,
     ) -> Self {
@@ -136,7 +148,7 @@ impl Contract {
                 Some(StorageKey::Approval),
             ),
             metadata: LazyOption::new(StorageKey::Metadata, Some(&metadata)),
-            raffle: Raffle::new(StorageKey::Raffle, size as u64),
+            raffle: Raffle::new(StorageKey::Raffle),
             pending_tokens: 0,
             accounts: LookupMap::new(StorageKey::LinkdropKeys),
             whitelist: LookupMap::new(StorageKey::Whitelist),
@@ -258,7 +270,6 @@ impl Contract {
             num = u16::min(allowance, num);
             require!(num > 0, "Account has no more allowance left");
         }
-        require!(self.tokens_left() >= num as u32, "No NFTs left to mint");
         self.assert_deposit(num, account_id);
         self.is_allowed_signer(signer_id);
         self.is_already_mint(account_id);
@@ -398,9 +409,6 @@ impl Contract {
     }
 
     fn get_status(&self) -> Status {
-        if self.tokens_left() == 0 {
-            return Status::SoldOut;
-        }
         let current_time = current_time_ms();
         match (self.sale.presale_start, self.sale.public_sale_start) {
             (_, Some(public)) if public < current_time => Status::Open,

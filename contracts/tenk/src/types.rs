@@ -163,24 +163,9 @@ mod tests {
         AccountId::new_unchecked("alice.near".to_string())
     }
 
-    fn initial_metadata() -> InitialMetadata {
-        InitialMetadata {
-            name: "name".to_string(),
-            symbol: "sym".to_string(),
-            uri: "https://".to_string(),
-            ..Default::default()
-        }
-    }
-
     fn new_contract() -> Contract {
         Contract::new_default_meta(
             AccountId::new_unchecked("root".to_string()),
-            initial_metadata(),
-            10_000,
-            Some(Sale {
-                price: TEN.into(),
-                ..Default::default()
-            }),
             None,
         )
     }

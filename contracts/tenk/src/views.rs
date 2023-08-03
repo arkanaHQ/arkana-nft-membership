@@ -43,8 +43,8 @@ impl Contract {
     }
 
     /// Tokens left to be minted.  This includes those left to be raffled minus any pending linkdrops
-    pub fn tokens_left(&self) -> u32 {
-        self.raffle.len() as u32 - self.pending_tokens
+    pub fn current_id(&self) -> u64 {
+        self.raffle.current_id()
     }
 
     /// Part of the NFT metadata standard. Returns the contract's metadata
@@ -95,6 +95,6 @@ impl Contract {
 
     /// Initial size of collection. Number left to raffle + current total supply
     pub fn initial(&self) -> u64 {
-        self.raffle.len() + self.nft_total_supply().0 as u64
+        self.nft_total_supply().0 as u64
     }
 }
